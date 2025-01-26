@@ -211,23 +211,20 @@ legend("topright", legend = c("MPA", "non-MPA"),
 
 ```
 
-
 ```{r}
 # Plot #3: 
 spiny_counts |>
-    ggplot(aes(x=count, y=year)) +
-    geom_jitter(color = "seagreen") +
+    ggplot(aes(x=count, y=mpa)) +
+    geom_violin(color = "seagreen", fill = "seagreen", alpha = 0.5) +
     xlab("Lobster Count") +
-    ylab("Year") +
-    labs(title = "Count of Spiny Lobster by Year") +
-    theme_bw()
+    ylab("MPA Status") +
+    labs(title = "Count of Spiny Lobster grouped by MPA status") +
+    theme_light()
 ```
-
 
 ```{r}
 # Plot #4: Plot of lobster size
 ```
-
 
 **c.** Compare means of the outcome by treatment group. Using the `tbl_summary()` function from the package [`gt_summary`](https://www.danieldsjoberg.com/gtsummary/articles/tbl_summary.html)
 
