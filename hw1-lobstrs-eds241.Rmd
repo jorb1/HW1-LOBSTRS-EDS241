@@ -315,13 +315,19 @@ exp(m2_pois$coefficients[2]) -1
 
 **c.** Explain the statistical concept of dispersion and overdispersion in the context of this model.
 
-
+**One of the assumptions of Poisson regression is that variance is proportional to the mean. So, if the data is super dispersed, than the variance is greater than the mean.**
 
 **d.** Compare results with previous model, explain change in the significance of the treatment effect
 
+**In the lm() model, there was 5.36 more lobsters on average within MPAs compared to outside of them. In the Poisson model, there is slightly less than that, so the relationship between lobster counts inside vs outside MPAs is slightly less dramatic.**
+
 **e.** Check the model assumptions. Explain results.
 
+**After running the analysis below, I can see that Poisson is also likely not a good fit for this data. When measuring uniformity of residuals, the dots do not fall along the line. The homogenity of variance looks better, as the reference line is flat and horizontal. However, in the chart showing misspecified dispersion and zero-inflation, the green line does not follow the line of the predicted mean. So, it seems like I am violating some of the assumptions of the Poisson model.** 
+
 **f.** Conduct tests for over-dispersion & zero-inflation. Explain results.
+
+**I ran these tests below. The tests show that the model is predicint less zeros than are actually present in the data. So, there may be zero inflation. The dispersion test shows that the variance is significantly larger than the mean, which means we are violating one of the assumptions, and the model is not the best fit.**
 
 ```{r}
 check_model(m2_pois)
@@ -337,15 +343,27 @@ check_zeroinflation(m2_pois)
 
 **g.** Fit a negative binomial model using the function glm.nb() from the package `MASS` and check model diagnostics
 
+**I ran this in the provided code chunk below**
+
 **h.** In 1-2 sentences explain rationale for fitting this GLM model.
 
+**This is a negative binomial regression model. It is a model that allows us to relax the assumption that the variance is equal to the mean. Since the variance is not equal to the mean in our data, this model may be a better choice for this analysis**
+
 **i.** Interpret the treatment estimate result in your own words. Compare with results from the previous model.
+
+**This model shows that there is a 23% increase in lobsters within MPAs, compared to outside. This is extremely similar to our previous model. Wheb we do our checks below, however, we can see that this model does a much better job with over dispersion and zero inflation.**
 
 ```{r}
 
 # NOTE: The `glm.nb()` function does not require a `family` argument
+# Run the model
+m3_nb <- glm.nb(count ~ treat, spiny_counts)
 
-m3_nb <- 
+# Print results
+summ(m3_nb, model.fit = FALSE)
+
+# Calculate IRR
+exp(m2_pois$coefficients[2]) -1
 
 ```
 
@@ -375,12 +393,12 @@ Step 6: Compare models
 
 ```{r}
 
-export_summs(# ADD MODELS
+export_summs(m1_ols, m2_pois, m3_nb,
              model.names = c("OLS","Poisson", "NB"),
              statistics = "none")
 
 ```
-
+**It seems to me that in all three models, there is a "robust" treatment effect between the two groups. Or, the relationship between MPAs and non-MPAs is stable across the model specifications.**
 ------------------------------------------------------------------------
 
 Step 7: Building intuition - fixed effects
