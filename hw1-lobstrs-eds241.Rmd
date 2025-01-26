@@ -47,6 +47,8 @@ library(gt)
 library(gtsummary)
 library(MASS) ## NOTE: The `select()` function is masked. Use: `dplyr::select()` ##
 library(interactions) 
+library(ggridges)
+library(beeswarm)
 
 ```
 
@@ -87,7 +89,7 @@ Step 2: Read & wrangle data
 ```{r}
 # HINT: check for coding of missing values (`na = "-99999"`)
 # Read in CSV, defining NAs and cleaning names
-rawdata <- read_csv(here("data", "lobster_sbchannel_24.csv"), na = "-99999") |>
+rawdata <- read_csv(here("data", "spiny_abundance_sb_18.csv"), na = "-99999") |>
     clean_names()
 
 # Virew the dataframe to ensure it worked
@@ -144,7 +146,9 @@ spiny_counts <- tidydata |>
                              mpa == "non_MPA" ~ 0)) |>
     ungroup()
 
+# Verify the wrangling worked
 unique(spiny_counts$mpa)
+unique(spiny_counts$treat)
 
 ```
 
@@ -176,12 +180,54 @@ Create a plot of lobster **size** :
 4)  You choose the grouping variable(s)!
 
 ```{r}
-# plot 1: ....
+# Plot 1: A ridge plot grouped by reef site
 
-spiny_counts %>% 
-ggplot()
+spiny_counts |>
+ggplot(aes(x = count, y = site)) + 
+    geom_density_ridges(quantile_lines = TRUE,
+                        quantiles = 2,
+                        alpha = .5,
+                        fill = "seagreen") +
+    xlab("Spiny Lobster Count") +
+    ylab("Reef Site") +
+    labs(title = "Distribution of Spiny Lobster Counts by Site") +
+    theme_light()
     
 ```
+
+```{r}
+# Plot #2: a beeswarm plot grouped by year
+custom_colors <- c("seagreen", "yellow3")
+
+beeswarm(spiny_counts$count ~ spiny_counts$year,
+         pch = 19,
+         pwcol = custom_colors[factor(spiny_counts$mpa)],
+         xlab = "Year",
+         ylab = "Lobster Count",
+         main = "Lobster Count by Year, colored by MPA Type")
+
+legend("topright", legend = c("MPA", "non-MPA"),
+           col = custom_colors, pch = 19)
+
+```
+
+
+```{r}
+# Plot #3: 
+spiny_counts |>
+    ggplot(aes(x=count, y=year)) +
+    geom_jitter(color = "seagreen") +
+    xlab("Lobster Count") +
+    ylab("Year") +
+    labs(title = "Count of Spiny Lobster by Year") +
+    theme_bw()
+```
+
+
+```{r}
+# Plot #4: Plot of lobster size
+```
+
 
 **c.** Compare means of the outcome by treatment group. Using the `tbl_summary()` function from the package [`gt_summary`](https://www.danieldsjoberg.com/gtsummary/articles/tbl_summary.html)
 
