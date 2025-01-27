@@ -413,15 +413,22 @@ Step 7: Building intuition - fixed effects
 
 **c.** Take a look at the regression output. Each coefficient provides a comparison or the difference in means for a specific sub-group in the data. Informally, describe the what the model has estimated at a conceptual level (NOTE: you do not have to interpret coefficients individually)
 
+**This model is predicting how the effect on lobster count varies year to year, considering the treatment.**
+
 **d.** Explain why the main effect for treatment is negative? \*Does this result make sense?
+
+**If it is negative, it means that the treatment groups had lower lobster counts compared to the control group. It is ok if it is negative, because it is showing a reduction.**
 
 ```{r}
 
-ff_counts <- spiny_counts %>% 
+ff_counts <- spiny_counts |>
     mutate(year=as_factor(year))
     
-m5_fixedeffs <- lm(
-    log(counts+1) ~ treat*year,
+m5_fixedeffs <- glm.nb(
+    count ~ 
+        treat + 
+        year +
+        treat*year,
     data = ff_counts)
 
 summ(m5_fixedeffs, model.fit = FALSE)
@@ -437,9 +444,11 @@ summ(m5_fixedeffs, model.fit = FALSE)
 # Hint 2: Convert variable `year` to a factor
 
 interact_plot(m5_fixedeffs, pred = year, modx = treat,
-              outcome.scale = "response")
+              outcome.scale = "link")
 
 ```
+
+**Looking at the above analysis, it looks like the two groups have different y intercepts, which may be affecting the results.**
 
 **g.** Using `ggplot()` create a plot in same style as the previous `interaction plot`, but displaying the original scale of the outcome variable (lobster counts). This type of plot is commonly used to show how the treatment effect changes across discrete time points (i.e., panel data).
 
@@ -449,9 +458,15 @@ The plot should have... - `year` on the x-axis - `counts` on the y-axis - `mpa` 
 # Hint 1: Group counts by `year` and `mpa` and calculate the `mean_count`
 # Hint 2: Convert variable `year` to a factor
 
-plot_counts <- 
+# Group by to make data plottable, and plot
+plot_counts <- spiny_counts |>
+    group_by(year, mpa) |>
+    summarize(mean_count = mean(count, na.rm = TRUE)) |>
+    ggplot(aes(x = year, y = mean_count, color = mpa)) +
+    geom_line() +
+    theme_light()
 
-# plot_counts %>% ggplot() ...
+plot_counts
 ```
 
 ------------------------------------------------------------------------
@@ -460,15 +475,24 @@ Step 8: Reconsider causal identification assumptions
 
 a.  Discuss whether you think `spillover effects` are likely in this research context (see Glossary of terms; <https://docs.google.com/document/d/1RIudsVcYhWGpqC-Uftk9UTz3PIq6stVyEpT44EPNgpE/edit?usp=sharing>)
 
+**Because lobsters can swim, and are not strictly confined to any specific location, unless there was specific tagging of lobsters happening, then the spillover potential is high.**
+
 b.  Explain why spillover is an issue for the identification of causal effects
 
+**This can effect identification of causal effects, because if the control and treatment groups mix, then it violates the assumptions of the models.**
+
 c.  How does spillover relate to impact in this research setting?
+
+**In this research setting, it could impact analysis of the effectiveness of MPAs. Knowing the setting is important to determine which statistical methods are best.**
 
 d.  Discuss the following causal inference assumptions in the context of the MPA treatment effect estimator. Evaluate if each of the assumption are reasonable:
 
     1)  SUTVA: Stable Unit Treatment Value assumption
+    
+    **SUTVA requires no interference, and no hidden variations in the treatment. It would not hold up with this experiment, given the spillover issues discussed earlier, as well as the fact that there might be variations within each MPA in terms of management.**
+    
     2)  Excludability assumption
-
+    ** This assumption assumes that there are no other causal effects in play. This is probably not possible in our study, as there are many variables that might be affecting the lobsters, not just MPA designation.**
 ------------------------------------------------------------------------
 
 # EXTRA CREDIT
