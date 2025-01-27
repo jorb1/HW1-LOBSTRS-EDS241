@@ -78,6 +78,8 @@ Step 1: Anticipating potential sources of selection bias
 
 **a.** Do the control sites (Arroyo Quemado, Carpenteria, and Mohawk) provide a strong counterfactual for our treatment sites (Naples, Isla Vista)? Write a paragraph making a case for why this comparison is centris paribus or whether selection bias is likely (be specific!).
 
+**The sites are more or less evenly distributed along the coast, which could reduce selection bias. The two treatment sites are relatively close together still, which could have a spillover effect. I assume the sites were chosen evenly spaced to try and reduce spillover effect, but even selecting them in this way could lead to selection bias.**
+
 ------------------------------------------------------------------------
 
 Step 2: Read & wrangle data
@@ -105,7 +107,7 @@ head(rawdata)
 ```
 
 ```{r}
-
+# Create new dataframe 
 tidydata <- rawdata |>
     mutate(reef = factor(site, order = TRUE,
                          levels = c("AQUE",
@@ -136,6 +138,7 @@ Create new `df` named `spiny_counts`
 
 #HINT(e): Use `case_when()` to create the 3 new variable columns
 
+# Create new dataframe including new rows
 spiny_counts <- tidydata |>
     group_by(site, year, transect) |>
     summarize(count = sum(count, na.rm = TRUE),
@@ -143,8 +146,7 @@ spiny_counts <- tidydata |>
     mutate(mpa = case_when(site %in% c("IVEE", "NAPL") ~ "MPA",
                            site %in% c("CARP", "MOHK", "AQUE") ~ "non_MPA")) |>
     mutate(treat = case_when(mpa == "MPA" ~ 1,
-                             mpa == "non_MPA" ~ 0)) |>
-    ungroup()
+                             mpa == "non_MPA" ~ 0))
 
 # Verify the wrangling worked
 unique(spiny_counts$mpa)
@@ -181,7 +183,6 @@ Create a plot of lobster **size** :
 
 ```{r}
 # Plot 1: A ridge plot grouped by reef site
-
 spiny_counts |>
 ggplot(aes(x = count, y = site)) + 
     geom_density_ridges(quantile_lines = TRUE,
@@ -215,7 +216,7 @@ legend("topright", legend = c("MPA", "non-MPA"),
 # Plot #3: Violin plot of MPA status
 spiny_counts |>
     ggplot(aes(x=count, y=mpa)) +
-    geom_violin(color = "seagreen", fill = "seagreen", alpha = 0.5) +
+    geom_violin(color = "seagreen", fill = "seagreen", alpha = 0.5, draw_quantiles = c(0.25, 0.5, 0.75)) +
     xlab("Lobster Count") +
     ylab("MPA Status") +
     labs(title = "Count of Spiny Lobster grouped by MPA status") +
@@ -263,6 +264,7 @@ m1_ols <- lm(count ~ treat, spiny_counts)
 summ(m1_ols, model.fit = FALSE) 
 
 ```
+
 **The intercept coefficient represents the number of lobster counts with the treatment group is 0. Since our treatment group is the not-MPA group, this analysis tells us that there is 22.73 lobsters on average in not MPAs, so there are 5.36 more lobsters on average in the MPA group. The p-value is above the .05 threshold for statistical significance.**
 
 **c.** Check the model assumptions using the `check_model` function from the `performance` package
@@ -284,8 +286,8 @@ check_model(m1_ols, check = "homogeneity")
 ```{r}
 check_model(m1_ols, check = "pp_check")
 ```
-**These four plots show that the data are not normally distributed. The data seems to be right skewed. So, we assume that there is a violation in the assumptions of OLS. The lm() is probably not the best model to use on this data as a result.**
-------------------------------------------------------------------------
+
+## **These four plots show that the data are not normally distributed. The data seems to be right skewed. So, we assume that there is a violation in the assumptions of OLS. The lm() is probably not the best model to use on this data as a result.**
 
 Step 5: Fitting GLMs
 
@@ -323,7 +325,7 @@ exp(m2_pois$coefficients[2]) -1
 
 **e.** Check the model assumptions. Explain results.
 
-**After running the analysis below, I can see that Poisson is also likely not a good fit for this data. When measuring uniformity of residuals, the dots do not fall along the line. The homogenity of variance looks better, as the reference line is flat and horizontal. However, in the chart showing misspecified dispersion and zero-inflation, the green line does not follow the line of the predicted mean. So, it seems like I am violating some of the assumptions of the Poisson model.** 
+**After running the analysis below, I can see that Poisson is also likely not a good fit for this data. When measuring uniformity of residuals, the dots do not fall along the line. The homogenity of variance looks better, as the reference line is flat and horizontal. However, in the chart showing misspecified dispersion and zero-inflation, the green line does not follow the line of the predicted mean. So, it seems like I am violating some of the assumptions of the Poisson model.**
 
 **f.** Conduct tests for over-dispersion & zero-inflation. Explain results.
 
@@ -392,14 +394,14 @@ Step 6: Compare models
 **c.** Write a short paragraph comparing the results. Is the treatment effect `robust` or stable across the model specifications.
 
 ```{r}
-
+# Made a table comparing the models
 export_summs(m1_ols, m2_pois, m3_nb,
              model.names = c("OLS","Poisson", "NB"),
              statistics = "none")
 
 ```
-**It seems to me that in all three models, there is a "robust" treatment effect between the two groups. Or, the relationship between MPAs and non-MPAs is stable across the model specifications.**
-------------------------------------------------------------------------
+
+## **It seems to me that in all three models, there is a "robust" treatment effect between the two groups. Or, the relationship between MPAs and non-MPAs is stable across the model specifications.**
 
 Step 7: Building intuition - fixed effects
 
@@ -443,6 +445,7 @@ summ(m5_fixedeffs, model.fit = FALSE)
 # Hint 1: Group counts by `year` and `mpa` and calculate the `mean_count`
 # Hint 2: Convert variable `year` to a factor
 
+# Plot the predicted outcomes
 interact_plot(m5_fixedeffs, pred = year, modx = treat,
               outcome.scale = "link")
 
@@ -488,12 +491,10 @@ c.  How does spillover relate to impact in this research setting?
 d.  Discuss the following causal inference assumptions in the context of the MPA treatment effect estimator. Evaluate if each of the assumption are reasonable:
 
     1)  SUTVA: Stable Unit Treatment Value assumption
-    
+
     **SUTVA requires no interference, and no hidden variations in the treatment. It would not hold up with this experiment, given the spillover issues discussed earlier, as well as the fact that there might be variations within each MPA in terms of management.**
-    
-    2)  Excludability assumption
-    ** This assumption assumes that there are no other causal effects in play. This is probably not possible in our study, as there are many variables that might be affecting the lobsters, not just MPA designation.**
-------------------------------------------------------------------------
+
+    2)  Excludability assumption \*\* This assumption assumes that there are no other causal effects in play. This is probably not possible in our study, as there are many variables that might be affecting the lobsters, not just MPA designation.\*\* ------------------------------------------------------------------------
 
 # EXTRA CREDIT
 
